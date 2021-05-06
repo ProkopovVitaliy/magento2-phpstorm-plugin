@@ -1,0 +1,39 @@
+<?php
+#parse("PHP File Header.php")
+#set ($uses = ${USES})
+#foreach ($use in $uses.split(","))
+use $use;
+#end
+
+/** @var ${BLOCK_CLASS} $block */
+?>
+
+<div class="field ${INPUT_NAME}#if(${IS_REQUIRED} == "true") required#end">
+    <label class="label" for="${INPUT_NAME}">
+        <span><?= $block->escapeHtml(__('${INPUT_LABEL}')) ?></span>
+    </label>
+    <input type="text"
+           class="input-text"
+           id="${INPUT_NAME}"
+           style="width: auto"
+           name="${INPUT_NAME}"/>
+    <div class="control">
+    </div>
+</div>
+
+<script>
+    require([
+        'jquery',
+        'mage/translate',
+        'mage/calendar'
+    ], function ($, $t) {
+        $('#${INPUT_NAME}').calendar({
+            changeMonth: true,
+            changeYear: true,
+            showButtonPanel: true,
+            currentText: $t('Go Today'),
+            closeText: $t('Close'),
+            showWeek: true
+        });
+    })
+</script>

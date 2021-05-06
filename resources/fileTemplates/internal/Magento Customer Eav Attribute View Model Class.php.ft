@@ -1,0 +1,51 @@
+<?php
+#parse("PHP File Header.php")
+#if (${NAMESPACE})
+namespace ${NAMESPACE};
+#end
+
+#set ($uses = ${USES})
+#foreach ($use in $uses.split(","))
+use $use;
+#end
+
+class ${CLASS_NAME} implements ${ARGUMENT_INTERFACE}
+{
+    /**
+     * @var string
+     */
+    private const ATTRIBUTE_CODE = '${ATTRIBUTE_CODE}';
+
+    /**
+     * @var ${ATTRIBUTE_REPOSITORY_INTERFACE}
+     */
+    private $attributeRepository;
+
+    /**
+     * @param ${ATTRIBUTE_REPOSITORY_INTERFACE} $attributeRepository
+     */
+    public function __construct(
+        AttributeRepositoryInterface $attributeRepository
+    ) {
+        $this->attributeRepository = $attributeRepository;
+    }
+
+    /**
+    * @return array
+    * @throws ${NO_SUCH_ENTITY_EXCEPTION}
+    */
+    public function getOptions(): array
+    {
+        $result = [];
+        $attribute = $this->attributeRepository->get(Customer::ENTITY, self::ATTRIBUTE_CODE);
+        /** @var Option[] $attributeOptions */
+        $attributeOptions = $attribute->getOptions();
+
+        foreach ($attributeOptions as $attributeOption) {
+            $attributeValue = $attributeOption->getValue();
+            $result[$attributeValue] = $attributeOption->getLabel();
+        }
+
+        return $result;
+    }
+}

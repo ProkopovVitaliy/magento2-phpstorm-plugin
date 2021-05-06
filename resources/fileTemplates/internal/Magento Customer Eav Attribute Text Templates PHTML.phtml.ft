@@ -1,0 +1,24 @@
+<?php
+#parse("PHP File Header.php")
+#set ($uses = ${USES})
+#foreach ($use in $uses.split(","))
+use $use;
+#end
+
+/** @var ${BLOCK_CLASS} $block */
+?>
+
+<div class="field ${INPUT_NAME}#if(${IS_REQUIRED} == "true") required#end">
+    <label class="label" for="${INPUT_NAME}">
+        <span><?= $block->escapeHtml(__('${INPUT_LABEL}')) ?></span>
+    </label>
+    <div class="control">
+        <input type="text"
+               name="${INPUT_NAME}"
+               id="${INPUT_NAME}"
+               value=""
+               title="<?= $block->escapeHtmlAttr(__('${INPUT_LABEL}')) ?>"
+               class="input-text"
+               data-validate="{required:${IS_REQUIRED}}">
+    </div>
+</div>

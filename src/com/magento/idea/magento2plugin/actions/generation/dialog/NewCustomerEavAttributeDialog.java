@@ -8,22 +8,38 @@ package com.magento.idea.magento2plugin.actions.generation.dialog;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDirectory;
+import com.magento.idea.magento2plugin.actions.generation.data.CustomerAccountCreateLayoutData;
+import com.magento.idea.magento2plugin.actions.generation.data.CustomerEavAttributeViewModelData;
 import com.magento.idea.magento2plugin.actions.generation.data.CustomerEntityData;
 import com.magento.idea.magento2plugin.actions.generation.data.EavEntityDataInterface;
 import com.magento.idea.magento2plugin.actions.generation.data.ui.ComboBoxItemData;
 import com.magento.idea.magento2plugin.actions.generation.dialog.eavattribute.EavAttributeDialog;
+import com.magento.idea.magento2plugin.actions.generation.dialog.util.SplitEavAttributeCodeUtil;
 import com.magento.idea.magento2plugin.actions.generation.dialog.validator.annotation.FieldValidation;
 import com.magento.idea.magento2plugin.actions.generation.dialog.validator.annotation.RuleRegistry;
 import com.magento.idea.magento2plugin.actions.generation.dialog.validator.rule.Lowercase;
 import com.magento.idea.magento2plugin.actions.generation.dialog.validator.rule.NotEmptyRule;
+import com.magento.idea.magento2plugin.actions.generation.generator.CustomerAccountCreateLayoutGenerator;
 import com.magento.idea.magento2plugin.actions.generation.generator.CustomerEavAttributePatchGenerator;
+import com.magento.idea.magento2plugin.actions.generation.generator.CustomerEavAttributeTemplateGenerator;
+import com.magento.idea.magento2plugin.actions.generation.generator.CustomerEavAttributeViewModelGenerator;
+import com.magento.idea.magento2plugin.actions.generation.generator.eav.customer.AttributeTemplateGeneratorFactory;
+import com.magento.idea.magento2plugin.actions.generation.util.eav.customer.GetAdvancedFormInputsUtil;
+import com.magento.idea.magento2plugin.magento.files.CustomerEavAttributeViewModelFile;
 import com.magento.idea.magento2plugin.magento.packages.eav.AttributeInput;
 import com.magento.idea.magento2plugin.magento.packages.eav.AttributeSourceModel;
 import com.magento.idea.magento2plugin.magento.packages.uicomponent.AvailableSourcesByInput;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.WordUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({
         "PMD.TooManyFields",
@@ -83,6 +99,7 @@ public class NewCustomerEavAttributeDialog extends EavAttributeDialog {
     private JCheckBox filterableInGridCheckBox;
     private JCheckBox visibleInGridCheckBox;
     private JCheckBox systemAttributeCheckBox;
+    private JCheckBox generateAttributeTemplateCheckBox;
 
     /**
      * Constructor.
@@ -319,5 +336,144 @@ public class NewCustomerEavAttributeDialog extends EavAttributeDialog {
                 }
             }
         });
+    }
+
+    @Override
+    protected void initBaseDialogState() {
+        super.initBaseDialogState();
+        addAttributeTemplateGenerationListener();
+        addUseInFormDependsListener();
+    }
+
+    private void addUseInFormDependsListener() {
+        requiredCheckBox.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent changeEvent) {
+                final boolean haveToUseInForm = requiredCheckBox.isSelected();
+                List<JCheckBox> dependsOptions = getUseInFormComponents();
+
+                for (JCheckBox element: dependsOptions) {
+                    element.setSelected(haveToUseInForm);
+                    element.setEnabled(!haveToUseInForm);
+                }
+            }
+        });
+    }
+
+    @NotNull
+    private List<JCheckBox> getUseInFormComponents() {
+        List<JCheckBox> dependsOptions = new ArrayList<>();
+        dependsOptions.add(useInAdminhtmlCustomerCheckBox);
+        dependsOptions.add(useInCustomerAccountCreateCheckBox);
+        dependsOptions.add(useInCustomerAccountEditCheckBox);
+
+        return dependsOptions;
+    }
+
+
+    private void addAttributeTemplateGenerationListener() {
+        useInCustomerAccountCreateCheckBox.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent changeEvent) {
+                generateAttributeTemplateCheckBox.setVisible(
+                        useInCustomerAccountCreateCheckBox.isSelected()
+                );
+            }
+        });
+    }
+
+    @Override
+    protected void generateExtraFilesAfterDataPatchGeneration(
+            final EavEntityDataInterface eavEntityDataInterface
+    ) {
+        super.generateExtraFilesAfterDataPatchGeneration(eavEntityDataInterface);
+        CustomerEntityData customerEntityData = (CustomerEntityData) eavEntityDataInterface;
+
+        if (generateAttributeTemplateCheckBox.isSelected()) {
+            final AttributeInput selectedInput =
+                    AttributeInput.getAttributeInputByCode(customerEntityData.getInput());
+            final List<AttributeInput> advancedFormInput = GetAdvancedFormInputsUtil.execute();
+
+            String viewModelClassPatch = null;
+            if (advancedFormInput.contains(selectedInput)) {
+                viewModelClassPatch = new CustomerEavAttributeViewModelFile(
+                        moduleName,
+                        convertAttributeCodeToViewModelClassName(customerEntityData.getCode())
+                ).getClassFqn();
+
+                final String viewModelName = convertAttributeCodeToViewModelClassName(customerEntityData.getCode());
+
+                final CustomerEavAttributeViewModelData customerEavAttributeViewModelData =
+                        new CustomerEavAttributeViewModelData(
+                                customerEntityData.getCode(),
+                                viewModelName,
+                                moduleName
+                        );
+                new CustomerEavAttributeViewModelGenerator(
+                        customerEavAttributeViewModelData,
+                        project
+                ).generate(actionName, false);
+            }
+
+            CustomerEavAttributeTemplateGenerator customerEavAttributeTemplateGenerator =
+                    new AttributeTemplateGeneratorFactory(
+                            selectedInput,
+                            customerEntityData.getCode(),
+                            customerEntityData.getLabel(),
+                            customerEntityData.isRequired(),
+                            customerEntityData.getCode(),
+                            project,
+                            moduleName
+                    ).create();
+
+            customerEavAttributeTemplateGenerator.generate(actionName, false);
+
+            generateLayoutFile(customerEntityData, viewModelClassPatch);
+        }
+    }
+
+    //TODO move from Dialog
+    private String convertAttributeCodeToViewModelName(
+            @NotNull final String attributeCode
+    ) {
+        final String[] splitAttributeCode = SplitEavAttributeCodeUtil.execute(attributeCode);
+
+        for (int i = 1; i < splitAttributeCode.length; i++) {
+            splitAttributeCode[i] = StringUtils.capitalize(splitAttributeCode[i]);
+        }
+
+        return String.join("", splitAttributeCode)  + "Options";
+    }
+
+    //TODO move from Dialog
+    private String convertAttributeCodeToViewModelClassName(
+            @NotNull final String attributeCode
+    ) {
+        final String[] splitAttributeCode = SplitEavAttributeCodeUtil.execute(attributeCode);
+
+        for (int i = 0; i < splitAttributeCode.length; i++) {
+            splitAttributeCode[i] = StringUtils.capitalize(splitAttributeCode[i]);
+        }
+
+        return String.join("", splitAttributeCode);
+    }
+
+    private void generateLayoutFile(
+            @NotNull final CustomerEntityData customerEntityData,
+            final String viewModelClassPatch
+    ) {
+        final CustomerAccountCreateLayoutData  customerAccountCreateLayoutData =
+                new CustomerAccountCreateLayoutData(
+                        customerEntityData.getCode(),
+                        customerEntityData.getInput(),
+                        convertAttributeCodeToViewModelName(customerEntityData.getCode()),
+                        viewModelClassPatch,
+                        moduleName
+                );
+        new CustomerAccountCreateLayoutGenerator(
+                customerAccountCreateLayoutData,
+                project,
+                moduleName
+        ).generate(actionName, false);
     }
 }
