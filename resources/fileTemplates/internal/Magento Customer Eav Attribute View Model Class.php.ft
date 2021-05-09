@@ -14,7 +14,7 @@ class ${CLASS_NAME} implements ${ARGUMENT_INTERFACE}
     /**
      * @var string
      */
-    private const ATTRIBUTE_CODE = '${ATTRIBUTE_CODE}';
+    private $attributeCode = '${ATTRIBUTE_CODE}';
 
     /**
      * @var ${ATTRIBUTE_REPOSITORY_INTERFACE}
@@ -37,7 +37,7 @@ class ${CLASS_NAME} implements ${ARGUMENT_INTERFACE}
     public function getOptions(): array
     {
         $result = [];
-        $attribute = $this->attributeRepository->get(Customer::ENTITY, self::ATTRIBUTE_CODE);
+        $attribute = $this->attributeRepository->get(Customer::ENTITY, $this->attributeCode);
         /** @var Option[] $attributeOptions */
         $attributeOptions = $attribute->getOptions();
 

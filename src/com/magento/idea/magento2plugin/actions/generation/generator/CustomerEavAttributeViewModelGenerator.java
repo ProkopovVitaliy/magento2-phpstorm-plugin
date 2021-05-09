@@ -43,6 +43,11 @@ public class CustomerEavAttributeViewModelGenerator extends PhpFileGenerator {
     }
 
     @Override
+    protected AbstractPhpFile initFile() {
+        return new CustomerEavAttributeViewModelFile(data.getModuleName(), data.getClassName());
+    }
+
+    @Override
     protected void fillAttributes(Properties attributes) {
         final PhpClassTypesBuilder phpClassTypesBuilder = new PhpClassTypesBuilder();
 
@@ -85,10 +90,5 @@ public class CustomerEavAttributeViewModelGenerator extends PhpFileGenerator {
                 "USES",
                 PhpClassGeneratorUtil.formatUses(phpClassTypesBuilder.getUses())
         );
-    }
-
-    @Override
-    protected AbstractPhpFile initFile() {
-        return new CustomerEavAttributeViewModelFile(data.getModuleName(), data.getClassName());
     }
 }

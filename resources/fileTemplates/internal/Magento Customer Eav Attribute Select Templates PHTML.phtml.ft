@@ -1,0 +1,36 @@
+<?php
+#parse("PHP File Header.php")
+#set ($uses = ${USES})
+#foreach ($use in $uses.split(","))
+use $use;
+#end
+
+/** @var ${BLOCK_CLASS} $block */
+/** @var ${VIEW_MODEL_CLASS} $${VIEW_MODEL_NAME} */
+?>
+
+<?php
+/** @var ${VIEW_MODEL_CLASS} $${VIEW_MODEL_NAME} */
+$${VIEW_MODEL_NAME} = $block->getData('${VIEW_MODEL_NAME}');
+?>
+
+<div class="field ${INPUT_NAME}#if(${IS_REQUIRED}) required#end">
+    <label class="label" for="${INPUT_NAME}">
+        <span><?= $block->escapeHtml(__('${INPUT_LABEL}')) ?></span>
+    </label>
+    <div class="control">
+        <select
+                #if(${IS_MULTISELECT}) multiple="multiple"#end
+                name="${INPUT_NAME}#if(${IS_MULTISELECT})[]#end"
+                id="${INPUT_NAME}"
+                title="<?= $block->escapeHtmlAttr(__('${INPUT_LABEL}')) ?>"
+                class="select"
+                #if(${IS_REQUIRED})data-validate="{required:true}"#end >
+            <?php if ($${VIEW_MODEL_NAME}) : ?>
+            <?php foreach ($${VIEW_MODEL_NAME}->getOptions() as $value => $label): ?>
+            <option value="<?= $value ?>"><?= $label ?></option>
+            <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
+    </div>
+</div>

@@ -37,9 +37,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.WordUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({
         "PMD.TooManyFields",
@@ -394,14 +392,15 @@ public class NewCustomerEavAttributeDialog extends EavAttributeDialog {
                     AttributeInput.getAttributeInputByCode(customerEntityData.getInput());
             final List<AttributeInput> advancedFormInput = GetAdvancedFormInputsUtil.execute();
 
-            String viewModelClassPatch = null;
             if (advancedFormInput.contains(selectedInput)) {
-                viewModelClassPatch = new CustomerEavAttributeViewModelFile(
+                final String viewModelClassPatch = new CustomerEavAttributeViewModelFile(
                         moduleName,
                         convertAttributeCodeToViewModelClassName(customerEntityData.getCode())
                 ).getClassFqn();
-
                 final String viewModelName = convertAttributeCodeToViewModelClassName(customerEntityData.getCode());
+
+                generateLayoutFile(customerEntityData, viewModelClassPatch);
+
 
                 final CustomerEavAttributeViewModelData customerEavAttributeViewModelData =
                         new CustomerEavAttributeViewModelData(
@@ -413,22 +412,37 @@ public class NewCustomerEavAttributeDialog extends EavAttributeDialog {
                         customerEavAttributeViewModelData,
                         project
                 ).generate(actionName, false);
+
+                CustomerEavAttributeTemplateGenerator customerEavAttributeTemplateGenerator =
+                        new AttributeTemplateGeneratorFactory(
+                                selectedInput,
+                                customerEntityData.getCode(),
+                                customerEntityData.getLabel(),
+                                customerEntityData.isRequired(),
+                                customerEntityData.getCode(),
+                                convertAttributeCodeToViewModelName(customerEntityData.getCode()),
+                                viewModelClassPatch,
+                                selectedInput == AttributeInput.MULTISELECT,
+                                moduleName,
+                                project
+                        ).create();
+
+                customerEavAttributeTemplateGenerator.generate(actionName, false);
+            } else { //TODO rchange logic
+                generateLayoutFile(customerEntityData, null);
+                CustomerEavAttributeTemplateGenerator customerEavAttributeTemplateGenerator =
+                        new AttributeTemplateGeneratorFactory(
+                                selectedInput,
+                                customerEntityData.getCode(),
+                                customerEntityData.getLabel(),
+                                customerEntityData.isRequired(),
+                                customerEntityData.getCode(),
+                                moduleName,
+                                project
+                        ).create();
+
+                customerEavAttributeTemplateGenerator.generate(actionName, false);
             }
-
-            CustomerEavAttributeTemplateGenerator customerEavAttributeTemplateGenerator =
-                    new AttributeTemplateGeneratorFactory(
-                            selectedInput,
-                            customerEntityData.getCode(),
-                            customerEntityData.getLabel(),
-                            customerEntityData.isRequired(),
-                            customerEntityData.getCode(),
-                            project,
-                            moduleName
-                    ).create();
-
-            customerEavAttributeTemplateGenerator.generate(actionName, false);
-
-            generateLayoutFile(customerEntityData, viewModelClassPatch);
         }
     }
 

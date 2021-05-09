@@ -71,12 +71,16 @@ public abstract class CustomerEavAttributeTemplateGenerator extends FileGenerato
                 .appendProperty(
                         "INPUT_LABEL",
                         data.getInputTitle()
-                )
-                .appendProperty(
-                        "IS_REQUIRED",
-                        Boolean.toString(data.isRequired())
-                )
-                .mergeProperties(attributes);
+                );
+
+        if (data.isRequired()) {
+            phpClassTypesBuilder.appendProperty(
+                    "IS_REQUIRED",
+                    Boolean.toString(data.isRequired())
+            );
+        }
+
+        phpClassTypesBuilder.mergeProperties(attributes);
 
         attributes.setProperty(
                 "USES",
